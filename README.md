@@ -1,11 +1,11 @@
-# NFL Game Day Central 🏈
+# Game Day Central 🏈
 
-A real-time application to find where to watch NFL games across different platforms - TV networks, streaming services, and radio broadcasts.
+A real-time application to find where to watch football games across different platforms - TV networks, streaming services, and radio broadcasts.
 
 ## Features 🌟
 
 -   Real-time game information from ESPN's API
--   Broadcast information for all NFL games
+-   Broadcast information for all football games
 -   Automatic mapping of streaming services based on TV networks
 -   Multiple ways to find games:
     -   By team
@@ -146,7 +146,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Acknowledgments 👏
 
 -   ESPN API for game data
--   NFL for broadcast information
+-   Football for broadcast information
 -   All contributors and users of the application
 
 ## 🌟 Author
