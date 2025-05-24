@@ -43,7 +43,7 @@ A real-time application to find where to watch NFL games across different platfo
 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/gameday-central.git
+git clone https://github.com/haywood-d-johnson/gameday-central.git
 cd gameday-central
 ```
 
