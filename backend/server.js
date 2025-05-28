@@ -9,6 +9,18 @@ const cacheService = require("./services/cache.service");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// CORS configuration
+const corsOptions = {
+    origin: [
+        'https://gameday-central-production.up.railway.app',
+        'http://localhost:3000', // Keep local development
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
+    optionsSuccessStatus: 200
+};
+
 // Rate limiting
 const limiter = rateLimit({
     windowMs: 60 * 1000, // 1 minute
@@ -19,7 +31,7 @@ const limiter = rateLimit({
 });
 
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(limiter);
 
@@ -49,6 +61,7 @@ const initializeServer = async () => {
         // Start server
         app.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`);
+            console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
         });
     } catch (error) {
         console.error("Error initializing server:", error);
