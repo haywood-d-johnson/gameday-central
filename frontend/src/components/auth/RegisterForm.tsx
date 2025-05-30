@@ -23,8 +23,15 @@ export const RegisterForm: React.FC = () => {
             await registerUser(data);
             toast.success('Registration successful!');
             navigate('/games');
-        } catch (error) {
-            if (error instanceof Error) {
+        } catch (error: any) {
+            if (error.response?.data?.message) {
+                toast.error(error.response.data.message);
+                if (error.response.data.errors) {
+                    error.response.data.errors.forEach((err: any) => {
+                        toast.error(err.message);
+                    });
+                }
+            } else if (error instanceof Error) {
                 toast.error(error.message);
             } else {
                 toast.error('Registration failed. Please try again.');
