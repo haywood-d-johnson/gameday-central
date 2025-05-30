@@ -5,22 +5,29 @@
 }
 
 .game-card {
-    background: #fff;
+    background: var(--bg-secondary);
     border-radius: 8px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    box-shadow: var(--card-shadow);
     margin-bottom: 20px;
     padding: 20px;
+    border: 1px solid var(--border-color);
+    transition: all 0.3s ease;
+}
+
+.game-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
 }
 
 .game-card h3 {
-    color: #333;
+    color: var(--text-primary);
     margin-bottom: 15px;
     font-size: 1.5rem;
 }
 
 .game-details {
     margin-bottom: 20px;
-    color: #666;
+    color: var(--text-secondary);
 }
 
 .game-details p {
@@ -28,31 +35,32 @@
 }
 
 .start-time {
-    color: #2c5282;
+    color: var(--accent-color);
     font-weight: bold;
 }
 
 .status {
-    color: #48bb78;
+    color: var(--text-secondary);
 }
 
 .venue {
     font-style: italic;
+    color: var(--text-secondary);
 }
 
 .broadcast-info {
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--border-color);
     padding-top: 15px;
     margin-top: 15px;
 }
 
 .broadcast-info p {
     margin: 8px 0;
-    color: #4a5568;
+    color: var(--text-secondary);
 }
 
 .broadcast-info strong {
-    color: #2d3748;
+    color: var(--text-primary);
     margin-right: 8px;
     min-width: 80px;
     display: inline-block;
