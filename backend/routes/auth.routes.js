@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const authService = require('../services/auth.service');
 const { z } = require('zod');
+const prisma = require('../lib/prisma');
 
 // Validation schemas
 const registerSchema = z.object({
@@ -87,5 +88,134 @@ router.patch('/preferences', authenticateToken, async (req, res) => {
         res.status(400).json({ message: error.message });
     }
 });
+
+// Debug endpoints - only available in development
+if (process.env.NODE_ENV === 'development') {
+    // Get user by email
+    router.get('/debug/user/:email', async (req, res) => {
+        try {
+            const user = await prisma.user.findUnique({
+                where: { email: req.params.email },
+                include: { preferences: true }
+            });
+
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+
+            const { password, ...userWithoutPassword } = user;
+            res.json(userWithoutPassword);
+        } catch (error) {
+            res.status(500).json({
+                message: 'Error checking user status',
+                error: error.message
+            });
+        }
+    });
+
+    // Get user by username
+    router.get('/debug/username/:username', async (req, res) => {
+        try {
+            const user = await prisma.user.findUnique({
+                where: { username: req.params.username },
+                include: { preferences: true }
+            });
+
+            if (!user) {
+                return res.status(404).json({ message: 'User not found' });
+            }
+
+            const { password, ...userWithoutPassword } = user;
+            res.json(userWithoutPassword);
+        } catch (error) {
+            res.status(500).json({
+                message: 'Error checking user status',
+                error: error.message
+            });
+        }
+    });
+
+    // List all users (paginated)
+    router.get('/debug/users', async (req, res) => {
+        try {
+            const page = parseInt(req.query.page) || 1;
+            const limit = parseInt(req.query.limit) || 10;
+            const skip = (page - 1) * limit;
+
+            const users = await prisma.user.findMany({
+                skip,
+                take: limit,
+                include: { preferences: true },
+                orderBy: { createdAt: 'desc' }
+            });
+
+            const total = await prisma.user.count();
+
+            res.json({
+                users: users.map(user => {
+                    const { password, ...userWithoutPassword } = user;
+                    return userWithoutPassword;
+                }),
+                pagination: {
+                    total,
+                    pages: Math.ceil(total / limit),
+                    currentPage: page,
+                    perPage: limit
+                }
+            });
+        } catch (error) {
+            res.status(500).json({
+                message: 'Error listing users',
+                error: error.message
+            });
+        }
+    });
+
+    // Check token validity
+    router.get('/debug/token/:token', async (req, res) => {
+        try {
+            const user = await authService.validateToken(req.params.token);
+            res.json(user);
+        } catch (error) {
+            res.status(401).json({
+                message: 'Invalid token',
+                error: error.message
+            });
+        }
+    });
+
+    // Database health check
+    router.get('/debug/db/health', async (req, res) => {
+        try {
+            // Try a simple query to check database connection
+            await prisma.$queryRaw`SELECT 1`;
+
+            // Get some basic stats
+            const stats = {
+                users: await prisma.user.count(),
+                preferences: await prisma.userPreferences.count(),
+                lastUser: await prisma.user.findFirst({
+                    orderBy: { createdAt: 'desc' },
+                    select: {
+                        email: true,
+                        username: true,
+                        createdAt: true
+                    }
+                })
+            };
+
+            res.json({
+                status: 'healthy',
+                timestamp: new Date().toISOString(),
+                stats
+            });
+        } catch (error) {
+            res.status(500).json({
+                status: 'unhealthy',
+                error: error.message
+            });
+        }
+    });
+}
 
 module.exports = router;

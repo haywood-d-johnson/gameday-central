@@ -6,8 +6,10 @@ import { ThemeToggle } from './components/ThemeToggle';
 import { LoginForm } from './components/auth/LoginForm';
 import { RegisterForm } from './components/auth/RegisterForm';
 import { GamesList } from './components/GamesList';
+import { ApiStatus } from './components/ApiStatus';
 import { Toaster } from 'react-hot-toast';
 import './styles/GamesList.css';
+import './styles/ApiStatus.css';
 import './App.css';
 
 function App() {
@@ -28,6 +30,7 @@ function App() {
                 <Route path="/" element={<Navigate to="/login" replace />} />
               </Routes>
             </main>
+            <ApiStatus />
             <Toaster position="top-right" />
           </div>
         </ThemeProvider>

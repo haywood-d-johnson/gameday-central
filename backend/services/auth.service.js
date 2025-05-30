@@ -1,7 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../lib/prisma');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-key-change-this';
 const SALT_ROUNDS = 10;
@@ -10,108 +9,142 @@ class AuthService {
     async register(userData) {
         const { email, username, password, firstName, lastName } = userData;
 
-        // Check if user already exists
-        const existingUser = await prisma.user.findFirst({
-            where: {
-                OR: [
-                    { email },
-                    { username }
-                ]
-            }
-        });
-
-        if (existingUser) {
-            if (existingUser.email === email) {
-                throw new Error('Email already in use');
-            }
-            if (existingUser.username === username) {
-                throw new Error('Username already taken');
-            }
-        }
-
-        // Hash password
-        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-
-        // Create user
-        const user = await prisma.user.create({
-            data: {
-                email,
-                username,
-                password: hashedPassword,
-                firstName,
-                lastName,
-                preferences: {
-                    create: {
-                        favoriteTeams: [],
-                        darkMode: false,
-                        notifications: true
-                    }
+        try {
+            // Check if user already exists
+            const existingUser = await prisma.user.findFirst({
+                where: {
+                    OR: [
+                        { email },
+                        { username }
+                    ]
                 }
-            },
-            include: {
-                preferences: true
+            });
+
+            if (existingUser) {
+                if (existingUser.email === email) {
+                    throw new Error('Email already in use');
+                }
+                if (existingUser.username === username) {
+                    throw new Error('Username already taken');
+                }
             }
-        });
 
-        // Generate JWT
-        const token = this.generateToken(user);
+            // Hash password
+            const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
 
-        // Return user data (excluding password) and token
-        const { password: _, ...userWithoutPassword } = user;
-        return {
-            user: userWithoutPassword,
-            token
-        };
+            // Create user
+            const user = await prisma.user.create({
+                data: {
+                    email,
+                    username,
+                    password: hashedPassword,
+                    firstName,
+                    lastName,
+                    preferences: {
+                        create: {
+                            favoriteTeams: [],
+                            darkMode: false,
+                            notifications: true
+                        }
+                    }
+                },
+                include: {
+                    preferences: true
+                }
+            });
+
+            // Generate JWT
+            const token = this.generateToken(user);
+
+            // Return user data (excluding password) and token
+            const { password: _, ...userWithoutPassword } = user;
+            return {
+                user: userWithoutPassword,
+                token
+            };
+        } catch (error) {
+            console.error('Registration error:', {
+                message: error.message,
+                email,
+                username
+            });
+            throw error;
+        }
     }
 
     async login(emailOrUsername, password) {
-        // Find user by email or username
-        const user = await prisma.user.findFirst({
-            where: {
-                OR: [
-                    { email: emailOrUsername },
-                    { username: emailOrUsername }
-                ]
-            },
-            include: {
-                preferences: true
+        try {
+            // Find user by email or username
+            const user = await prisma.user.findFirst({
+                where: {
+                    OR: [
+                        { email: emailOrUsername },
+                        { username: emailOrUsername }
+                    ]
+                },
+                include: {
+                    preferences: true
+                }
+            });
+
+            if (!user) {
+                throw new Error('Invalid credentials');
             }
-        });
 
-        if (!user) {
-            throw new Error('Invalid credentials');
+            // Verify password
+            const isValidPassword = await bcrypt.compare(password, user.password);
+            if (!isValidPassword) {
+                throw new Error('Invalid credentials');
+            }
+
+            // Generate JWT
+            const token = this.generateToken(user);
+
+            // Return user data (excluding password) and token
+            const { password: _, ...userWithoutPassword } = user;
+            return {
+                user: userWithoutPassword,
+                token
+            };
+        } catch (error) {
+            console.error('Login error:', {
+                message: error.message,
+                emailOrUsername
+            });
+            throw error;
         }
-
-        // Verify password
-        const isValidPassword = await bcrypt.compare(password, user.password);
-        if (!isValidPassword) {
-            throw new Error('Invalid credentials');
-        }
-
-        // Generate JWT
-        const token = this.generateToken(user);
-
-        // Return user data (excluding password) and token
-        const { password: _, ...userWithoutPassword } = user;
-        return {
-            user: userWithoutPassword,
-            token
-        };
     }
 
     async updatePreferences(userId, preferences) {
-        return prisma.userPreferences.update({
-            where: { userId },
-            data: preferences
-        });
+        try {
+            return await prisma.userPreferences.update({
+                where: { userId },
+                data: preferences
+            });
+        } catch (error) {
+            console.error('Update preferences error:', {
+                message: error.message,
+                userId,
+                preferences
+            });
+            throw error;
+        }
     }
 
     generateToken(user) {
-        return jwt.sign(
-            { userId: user.id, email: user.email },
-            JWT_SECRET,
-            { expiresIn: '7d' }
-        );
+        try {
+            return jwt.sign(
+                { userId: user.id, email: user.email },
+                JWT_SECRET,
+                { expiresIn: '7d' }
+            );
+        } catch (error) {
+            console.error('Token generation error:', {
+                message: error.message,
+                userId: user.id
+            });
+            throw error;
+        }
     }
 
     async validateToken(token) {
@@ -129,7 +162,11 @@ class AuthService {
             const { password: _, ...userWithoutPassword } = user;
             return userWithoutPassword;
         } catch (error) {
-            throw new Error('Invalid token');
+            console.error('Token validation error:', {
+                message: error.message,
+                token: token ? 'Present' : 'Not Present'
+            });
+            throw error;
         }
     }
 }

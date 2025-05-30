@@ -1,0 +1,47 @@
+.api-status {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.api-status.checking {
+    background-color: #f0f0f0;
+    color: #666;
+}
+
+.api-status.connected {
+    background-color: #e6ffe6;
+    color: #006400;
+}
+
+.api-status.disconnected {
+    background-color: #ffe6e6;
+    color: #640000;
+}
+
+.api-status button {
+    margin-left: 10px;
+    padding: 5px 10px;
+    border: none;
+    border-radius: 4px;
+    background-color: #fff;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.api-status button:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.api-status button:hover:not(:disabled) {
+    background-color: #f0f0f0;
+}
