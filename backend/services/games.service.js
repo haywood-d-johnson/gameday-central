@@ -4,6 +4,17 @@ const axios = require("axios");
 const ESPN_BASE_URL = "https://site.api.espn.com/apis/site/v2";
 const ESPN_NFL_SCOREBOARD = `${ESPN_BASE_URL}/sports/football/nfl/scoreboard`;
 
+// Fallback data for when ESPN API is unavailable
+const FALLBACK_RESPONSE = {
+    message: "ESPN API temporarily unavailable. Using cached data.",
+    games: []
+};
+
+// Add timeout to axios requests
+const axiosInstance = axios.create({
+    timeout: 5000, // 5 seconds timeout
+});
+
 const formatBroadcastInfo = (broadcasts, geoBroadcasts) => {
     const broadcastInfo = {
         tv: [],
@@ -68,7 +79,7 @@ const formatBroadcastInfo = (broadcasts, geoBroadcasts) => {
 
 const fetchNFLGames = async () => {
     try {
-        const response = await axios.get(ESPN_NFL_SCOREBOARD);
+        const response = await axiosInstance.get(ESPN_NFL_SCOREBOARD);
         return response.data.events
             .map(event => {
                 const competition = event.competitions && event.competitions[0];
@@ -108,8 +119,9 @@ const fetchNFLGames = async () => {
             })
             .filter(game => game !== null);
     } catch (error) {
-        console.error("Error fetching NFL games from ESPN:", error);
-        throw error;
+        console.error("Error fetching NFL games from ESPN:", error.message);
+        // Return empty array instead of throwing
+        return [];
     }
 };
 
@@ -120,8 +132,8 @@ const getGameBroadcastInfo = async () => {
 
         if (!games || games.length === 0) {
             return {
-                message: "No games found for today",
-                games: [],
+                ...FALLBACK_RESPONSE,
+                timestamp: new Date().toISOString()
             };
         }
 
@@ -155,10 +167,15 @@ const getGameBroadcastInfo = async () => {
         return {
             message: `Found ${gamesWithBroadcastInfo.length} games`,
             games: gamesWithBroadcastInfo,
+            timestamp: new Date().toISOString()
         };
     } catch (error) {
-        console.error("Error getting game broadcast information:", error);
-        throw error;
+        console.error("Error getting game broadcast information:", error.message);
+        return {
+            ...FALLBACK_RESPONSE,
+            timestamp: new Date().toISOString(),
+            error: error.message
+        };
     }
 };
 
