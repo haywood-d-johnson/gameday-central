@@ -19,37 +19,14 @@ console.log('Server Configuration:', {
 });
 
 // CORS configuration
-const allowedOrigins = [
-    'https://gameday-central.vercel.app',
-    'https://gameday-central-production.up.railway.app',
-    'http://localhost:3000'
-];
-
-// More permissive CORS in production
-const corsOptions = process.env.NODE_ENV === 'production'
-    ? {
-        origin: true, // Allow all origins in production
-        credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
-        exposedHeaders: ['Content-Range', 'X-Content-Range'],
-        maxAge: 86400
-    }
-    : {
-        origin: (origin, callback) => {
-            if (!origin || allowedOrigins.includes(origin)) {
-                callback(null, origin);
-            } else {
-                console.log(`Origin ${origin} not allowed by CORS`);
-                callback(new Error('Not allowed by CORS'));
-            }
-        },
-        credentials: true,
-        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-        allowedHeaders: ['Content-Type', 'Authorization'],
-        exposedHeaders: ['Content-Range', 'X-Content-Range'],
-        maxAge: 86400
-    };
+const corsOptions = {
+    origin: true, // Allow all origins
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
+    maxAge: 86400
+};
 
 // Enhanced request logging
 app.use((req, res, next) => {
@@ -58,10 +35,15 @@ app.use((req, res, next) => {
         path: req.path,
         origin: req.headers.origin,
         authorization: req.headers.authorization ? 'Present' : 'Not Present',
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        body: req.method === 'POST' ? req.body : undefined
     });
     next();
 });
+
+// Middleware
+app.use(cors(corsOptions));
+app.use(express.json());
 
 // Rate limiting
 const limiter = rateLimit({
@@ -72,9 +54,6 @@ const limiter = rateLimit({
     },
 });
 
-// Middleware
-app.use(cors(corsOptions));
-app.use(express.json());
 app.use(limiter);
 
 // Health check endpoint with detailed information
@@ -90,7 +69,6 @@ app.get('/api/health', (req, res) => {
     };
 
     console.log('Health Check:', healthInfo);
-
     res.json(healthInfo);
 });
 
@@ -105,13 +83,30 @@ app.use((err, req, res, next) => {
         stack: process.env.NODE_ENV === 'development' ? err.stack : undefined,
         path: req.path,
         method: req.method,
+        body: req.method === 'POST' ? req.body : undefined,
         timestamp: new Date().toISOString()
     };
 
     console.error('Error occurred:', errorDetails);
 
+    // Send appropriate error response
+    if (err.name === 'ZodError') {
+        return res.status(400).json({
+            message: 'Validation error',
+            errors: err.errors
+        });
+    }
+
+    if (err.name === 'PrismaClientKnownRequestError') {
+        return res.status(400).json({
+            message: 'Database error',
+            code: err.code,
+            detail: err.message
+        });
+    }
+
     res.status(err.status || 500).json({
-        message: "Something went wrong!",
+        message: err.message || "Something went wrong!",
         error: process.env.NODE_ENV === "development" ? errorDetails : undefined,
     });
 });
@@ -132,8 +127,8 @@ const initializeServer = async () => {
             console.log(`Server is running on port ${PORT}`);
             console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
             console.log('CORS configuration:', {
-                mode: process.env.NODE_ENV === 'production' ? 'permissive' : 'strict',
-                origins: process.env.NODE_ENV === 'production' ? 'all' : allowedOrigins
+                mode: 'permissive',
+                origins: 'all'
             });
         });
     } catch (error) {

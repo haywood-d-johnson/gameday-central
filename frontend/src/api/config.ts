@@ -14,8 +14,8 @@ const validateApiUrl = (url: string): boolean => {
 const determineApiUrl = (): string => {
     const envUrl = process.env.REACT_APP_API_URL;
     const defaultUrl = process.env.NODE_ENV === 'production'
-        ? 'https://gameday-central-production.up.railway.app/api'
-        : 'http://localhost:5000/api';
+        ? 'https://gameday-central-production.up.railway.app'
+        : 'http://localhost:5000';
 
     const apiUrl = envUrl || defaultUrl;
 
@@ -41,18 +41,18 @@ if (process.env.NODE_ENV !== 'production') {
 
 // API Endpoints
 export const ENDPOINTS = {
-    HEALTH: `${API_BASE_URL}/health`,
+    HEALTH: `${API_BASE_URL}/api/health`,
     GAMES: {
-        ALL: `${API_BASE_URL}/games`,
-        BY_TEAM: (teamId: string) => `${API_BASE_URL}/games/team/${teamId}`,
-        BY_DATE: (date: string) => `${API_BASE_URL}/games/date/${date}`,
-        BY_VENUE: (venueId: string) => `${API_BASE_URL}/games/venue/${venueId}`,
+        ALL: `${API_BASE_URL}/api/games`,
+        BY_TEAM: (teamId: string) => `${API_BASE_URL}/api/games/team/${teamId}`,
+        BY_DATE: (date: string) => `${API_BASE_URL}/api/games/date/${date}`,
+        BY_VENUE: (venueId: string) => `${API_BASE_URL}/api/games/venue/${venueId}`,
     },
     AUTH: {
-        LOGIN: `${API_BASE_URL}/auth/login`,
-        REGISTER: `${API_BASE_URL}/auth/register`,
-        ME: `${API_BASE_URL}/auth/me`,
-        PREFERENCES: `${API_BASE_URL}/auth/preferences`,
+        LOGIN: `${API_BASE_URL}/api/auth/login`,
+        REGISTER: `${API_BASE_URL}/api/auth/register`,
+        ME: `${API_BASE_URL}/api/auth/me`,
+        PREFERENCES: `${API_BASE_URL}/api/auth/preferences`,
     }
 };
 
