@@ -19,32 +19,49 @@ console.log('Server Configuration:', {
 });
 
 // CORS configuration
-const corsOptions = {
-    origin: [
-        'https://gameday-central.vercel.app',
-        'https://gameday-central-production.up.railway.app',
-        'http://localhost:3000'
-    ],
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    exposedHeaders: ['Content-Range', 'X-Content-Range'],
-    credentials: true,
-    maxAge: 86400, // 24 hours
-    optionsSuccessStatus: 200
-};
+const allowedOrigins = [
+    'https://gameday-central.vercel.app',
+    'https://gameday-central-production.up.railway.app',
+    'http://localhost:3000'
+];
 
-// Log CORS requests in development
-if (process.env.NODE_ENV === 'development') {
-    app.use((req, res, next) => {
-        console.log('Incoming request:', {
-            method: req.method,
-            path: req.path,
-            origin: req.headers.origin,
-            authorization: req.headers.authorization ? 'Present' : 'Not Present'
-        });
-        next();
+// More permissive CORS in production
+const corsOptions = process.env.NODE_ENV === 'production'
+    ? {
+        origin: true, // Allow all origins in production
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+        exposedHeaders: ['Content-Range', 'X-Content-Range'],
+        maxAge: 86400
+    }
+    : {
+        origin: (origin, callback) => {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, origin);
+            } else {
+                console.log(`Origin ${origin} not allowed by CORS`);
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
+        credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'Authorization'],
+        exposedHeaders: ['Content-Range', 'X-Content-Range'],
+        maxAge: 86400
+    };
+
+// Enhanced request logging
+app.use((req, res, next) => {
+    console.log('Incoming request:', {
+        method: req.method,
+        path: req.path,
+        origin: req.headers.origin,
+        authorization: req.headers.authorization ? 'Present' : 'Not Present',
+        timestamp: new Date().toISOString()
     });
-}
+    next();
+});
 
 // Rate limiting
 const limiter = rateLimit({
@@ -72,10 +89,7 @@ app.get('/api/health', (req, res) => {
         uptime: process.uptime()
     };
 
-    // Log health check in development
-    if (process.env.NODE_ENV === 'development') {
-        console.log('Health Check:', healthInfo);
-    }
+    console.log('Health Check:', healthInfo);
 
     res.json(healthInfo);
 });
@@ -117,7 +131,10 @@ const initializeServer = async () => {
         app.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`);
             console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-            console.log(`CORS origins:`, corsOptions.origin);
+            console.log('CORS configuration:', {
+                mode: process.env.NODE_ENV === 'production' ? 'permissive' : 'strict',
+                origins: process.env.NODE_ENV === 'production' ? 'all' : allowedOrigins
+            });
         });
     } catch (error) {
         console.error("Error initializing server:", {
