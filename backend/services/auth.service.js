@@ -8,15 +8,25 @@ const SALT_ROUNDS = 10;
 
 class AuthService {
     async register(userData) {
-        const { email, password, firstName, lastName } = userData;
+        const { email, username, password, firstName, lastName } = userData;
 
         // Check if user already exists
-        const existingUser = await prisma.user.findUnique({
-            where: { email }
+        const existingUser = await prisma.user.findFirst({
+            where: {
+                OR: [
+                    { email },
+                    { username }
+                ]
+            }
         });
 
         if (existingUser) {
-            throw new Error('User already exists');
+            if (existingUser.email === email) {
+                throw new Error('Email already in use');
+            }
+            if (existingUser.username === username) {
+                throw new Error('Username already taken');
+            }
         }
 
         // Hash password
@@ -26,6 +36,7 @@ class AuthService {
         const user = await prisma.user.create({
             data: {
                 email,
+                username,
                 password: hashedPassword,
                 firstName,
                 lastName,
@@ -53,10 +64,15 @@ class AuthService {
         };
     }
 
-    async login(email, password) {
-        // Find user
-        const user = await prisma.user.findUnique({
-            where: { email },
+    async login(emailOrUsername, password) {
+        // Find user by email or username
+        const user = await prisma.user.findFirst({
+            where: {
+                OR: [
+                    { email: emailOrUsername },
+                    { username: emailOrUsername }
+                ]
+            },
             include: {
                 preferences: true
             }

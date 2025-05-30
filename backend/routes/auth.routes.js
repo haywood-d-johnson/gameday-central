@@ -6,13 +6,14 @@ const { z } = require('zod');
 // Validation schemas
 const registerSchema = z.object({
     email: z.string().email(),
+    username: z.string().min(3).max(30).regex(/^[a-zA-Z0-9_-]+$/, 'Username can only contain letters, numbers, underscores, and hyphens'),
     password: z.string().min(8),
     firstName: z.string().optional(),
     lastName: z.string().optional()
 });
 
 const loginSchema = z.object({
-    email: z.string().email(),
+    emailOrUsername: z.string(),
     password: z.string()
 });
 
@@ -58,7 +59,7 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
     try {
         const validatedData = loginSchema.parse(req.body);
-        const result = await authService.login(validatedData.email, validatedData.password);
+        const result = await authService.login(validatedData.emailOrUsername, validatedData.password);
         res.json(result);
     } catch (error) {
         if (error instanceof z.ZodError) {

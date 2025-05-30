@@ -7,6 +7,7 @@ import '../../styles/Auth.css';
 
 interface RegisterFormData {
     email: string;
+    username: string;
     password: string;
     firstName?: string;
     lastName?: string;
@@ -21,9 +22,13 @@ export const RegisterForm: React.FC = () => {
         try {
             await registerUser(data);
             toast.success('Registration successful!');
-            navigate('/dashboard');
+            navigate('/games');
         } catch (error) {
-            toast.error('Registration failed. Please try again.');
+            if (error instanceof Error) {
+                toast.error(error.message);
+            } else {
+                toast.error('Registration failed. Please try again.');
+            }
         }
     };
 
@@ -45,6 +50,30 @@ export const RegisterForm: React.FC = () => {
                         })}
                     />
                     {errors.email && <span className="error">{errors.email.message}</span>}
+                </div>
+
+                <div className="form-group">
+                    <label htmlFor="username">Username</label>
+                    <input
+                        id="username"
+                        type="text"
+                        {...register('username', {
+                            required: 'Username is required',
+                            minLength: {
+                                value: 3,
+                                message: 'Username must be at least 3 characters'
+                            },
+                            maxLength: {
+                                value: 30,
+                                message: 'Username must be at most 30 characters'
+                            },
+                            pattern: {
+                                value: /^[a-zA-Z0-9_-]+$/,
+                                message: 'Username can only contain letters, numbers, underscores, and hyphens'
+                            }
+                        })}
+                    />
+                    {errors.username && <span className="error">{errors.username.message}</span>}
                 </div>
 
                 <div className="form-group">

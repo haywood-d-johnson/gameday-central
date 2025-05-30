@@ -5,6 +5,7 @@ import { API_BASE_URL } from '../api/config';
 interface User {
     id: string;
     email: string;
+    username: string;
     firstName?: string;
     lastName?: string;
     preferences: {
@@ -18,7 +19,7 @@ interface AuthContextType {
     user: User | null;
     token: string | null;
     isLoading: boolean;
-    login: (email: string, password: string) => Promise<void>;
+    login: (emailOrUsername: string, password: string) => Promise<void>;
     register: (data: RegisterData) => Promise<void>;
     logout: () => void;
     updatePreferences: (preferences: Partial<User['preferences']>) => Promise<void>;
@@ -26,6 +27,7 @@ interface AuthContextType {
 
 interface RegisterData {
     email: string;
+    username: string;
     password: string;
     firstName?: string;
     lastName?: string;
@@ -64,9 +66,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         initializeAuth();
     }, []);
 
-    const login = async (email: string, password: string) => {
+    const login = async (emailOrUsername: string, password: string) => {
         try {
-            const response = await axios.post('/auth/login', { email, password });
+            const response = await axios.post('/auth/login', { emailOrUsername, password });
             const { token, user } = response.data;
             localStorage.setItem('token', token);
             setToken(token);

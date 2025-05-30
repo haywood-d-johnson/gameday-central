@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import '../../styles/Auth.css';
 
 interface LoginFormData {
-    email: string;
+    emailOrUsername: string;
     password: string;
 }
 
@@ -17,11 +17,11 @@ export const LoginForm: React.FC = () => {
 
     const onSubmit = async (data: LoginFormData) => {
         try {
-            await login(data.email, data.password);
+            await login(data.emailOrUsername, data.password);
             toast.success('Successfully logged in!');
             navigate('/dashboard');
         } catch (error) {
-            toast.error('Invalid email or password');
+            toast.error('Invalid username/email or password');
         }
     };
 
@@ -30,19 +30,15 @@ export const LoginForm: React.FC = () => {
             <h2>Welcome to Game Day Central</h2>
             <form onSubmit={handleSubmit(onSubmit)} className="auth-form">
                 <div className="form-group">
-                    <label htmlFor="email">Email</label>
+                    <label htmlFor="emailOrUsername">Email or Username</label>
                     <input
-                        id="email"
-                        type="email"
-                        {...register('email', {
-                            required: 'Email is required',
-                            pattern: {
-                                value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
-                                message: 'Invalid email address'
-                            }
+                        id="emailOrUsername"
+                        type="text"
+                        {...register('emailOrUsername', {
+                            required: 'Email or username is required'
                         })}
                     />
-                    {errors.email && <span className="error">{errors.email.message}</span>}
+                    {errors.emailOrUsername && <span className="error">{errors.emailOrUsername.message}</span>}
                 </div>
 
                 <div className="form-group">
