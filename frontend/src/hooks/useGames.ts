@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import axios from 'axios';
 import { ENDPOINTS } from '../api/config';
+import { useAuth } from '../contexts/AuthContext';
 
 // Update the interface to match the actual API response
 interface Game {
@@ -31,15 +33,20 @@ export const useGames = (): UseGamesReturn => {
     const [games, setGames] = useState<Game[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
+    const { token } = useAuth();
 
     const fetchGames = async () => {
         try {
             setLoading(true);
-            const response = await fetch(ENDPOINTS.GAMES.ALL);
-            if (!response.ok) {
-                throw new Error('Failed to fetch games');
-            }
-            const data: APIResponse = await response.json();
+            const response = await axios.get<APIResponse>(ENDPOINTS.GAMES.ALL, {
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'Content-Type': 'application/json'
+                },
+                withCredentials: true
+            });
+
+            const data = response.data;
             console.log('Raw API Response:', data);
 
             if (data && data.games && Array.isArray(data.games)) {
@@ -61,7 +68,7 @@ export const useGames = (): UseGamesReturn => {
 
     useEffect(() => {
         fetchGames();
-    }, []);
+    }, [token]); // Re-fetch when token changes
 
     return {
         games,

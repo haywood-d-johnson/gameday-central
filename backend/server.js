@@ -3,6 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const rateLimit = require("express-rate-limit");
 const gamesRoutes = require("./routes/games.routes");
+const authRoutes = require("./routes/auth.routes");
 const gamesService = require("./services/games.service");
 const cacheService = require("./services/cache.service");
 
@@ -14,11 +15,13 @@ const corsOptions = {
     origin: [
         'https://gameday-central.vercel.app',
         'https://gameday-central-production.up.railway.app',
-        'http://localhost:3000', // Keep local development
+        'http://localhost:3000'
     ],
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
+    exposedHeaders: ['Content-Range', 'X-Content-Range'],
     credentials: true,
+    maxAge: 86400, // 24 hours
     optionsSuccessStatus: 200
 };
 
@@ -38,6 +41,7 @@ app.use(limiter);
 
 // Routes
 app.use("/api/games", gamesRoutes);
+app.use("/api/auth", authRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
