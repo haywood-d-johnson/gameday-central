@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
-import { API_BASE_URL } from '../api/config';
+import { API_BASE_URL, ENDPOINTS } from '../api/config';
 
 interface User {
     id: string;
@@ -48,7 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const storedToken = localStorage.getItem('token');
             if (storedToken) {
                 try {
-                    const response = await axios.get('/auth/me', {
+                    const response = await axios.get(ENDPOINTS.AUTH.ME, {
                         headers: { Authorization: `Bearer ${storedToken}` }
                     });
                     setUser(response.data);
@@ -68,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const login = async (emailOrUsername: string, password: string) => {
         try {
-            const response = await axios.post('/auth/login', { emailOrUsername, password });
+            const response = await axios.post(ENDPOINTS.AUTH.LOGIN, { emailOrUsername, password });
             const { token, user } = response.data;
             localStorage.setItem('token', token);
             setToken(token);
@@ -81,7 +81,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const register = async (data: RegisterData) => {
         try {
-            const response = await axios.post('/auth/register', data);
+            const response = await axios.post(ENDPOINTS.AUTH.REGISTER, data);
             const { token, user } = response.data;
             localStorage.setItem('token', token);
             setToken(token);
