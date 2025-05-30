@@ -12,6 +12,7 @@ const PORT = process.env.PORT || 5000;
 // CORS configuration
 const corsOptions = {
     origin: [
+        'https://gameday-central.vercel.app',
         'https://gameday-central-production.up.railway.app',
         'http://localhost:3000', // Keep local development
     ],
