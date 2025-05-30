@@ -1,0 +1,19 @@
+[phases.setup]
+nixPkgs = [
+    "nodejs_20",
+    "npm",
+    "postgresql"
+]
+
+[phases.install]
+cmds = [
+    "npm install"
+]
+
+[phases.build]
+cmds = [
+    "npm run prisma:generate"
+]
+
+[start]
+cmd = "npm start"
