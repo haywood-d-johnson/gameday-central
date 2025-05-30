@@ -1,16 +1,12 @@
 [build]
 builder = "NIXPACKS"
-nixpacksConfigPath = "nixpacks.toml"
 
 [deploy]
-startCommand = "cd /opt/app && npm install && npm run prisma:generate && npm start"
+startCommand = "npm start"
 healthcheckPath = "/api/health"
-healthcheckTimeout = 10
+healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
 
 [service]
 ports = [{ port = 5000, protocol = "tcp" }]
-
-[phases.setup]
-nixPkgs = ["nodejs", "npm"]
