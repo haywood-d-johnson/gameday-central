@@ -20,7 +20,9 @@ console.log('Server Configuration:', {
 
 // CORS configuration
 const corsOptions = {
-    origin: true, // Allow all origins
+    origin: process.env.NODE_ENV === 'production'
+        ? ['https://gameday-central.vercel.app', 'https://gameday-central-production.up.railway.app']
+        : ['http://localhost:3000'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -33,19 +35,50 @@ app.use((req, res, next) => {
     console.log('Incoming request:', {
         method: req.method,
         path: req.path,
+        baseUrl: req.baseUrl,
+        originalUrl: req.originalUrl,
         origin: req.headers.origin,
         authorization: req.headers.authorization ? 'Present' : 'Not Present',
         timestamp: new Date().toISOString(),
+        headers: req.headers,
         body: req.method === 'POST' ? req.body : undefined
     });
     next();
 });
 
+// Health check response function
+const getHealthInfo = () => ({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    database: process.env.DATABASE_URL ? 'configured' : 'not configured',
+    auth: process.env.JWT_SECRET ? 'configured' : 'not configured',
+    memory: process.memoryUsage(),
+    uptime: process.uptime()
+});
+
+// Health check handler
+const handleHealthCheck = (req, res) => {
+    console.log('Health check request received:', {
+        path: req.path,
+        baseUrl: req.baseUrl,
+        originalUrl: req.originalUrl
+    });
+
+    const healthInfo = getHealthInfo();
+    console.log('Health Check Response:', healthInfo);
+    res.json(healthInfo);
+};
+
 // Middleware
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Rate limiting
+// Health check endpoints - available at both /health and /api/health
+app.get('/health', handleHealthCheck);
+app.get('/api/health', handleHealthCheck);
+
+// Rate limiting for API routes
 const limiter = rateLimit({
     windowMs: 60 * 1000, // 1 minute
     max: 100, // 100 requests per minute
@@ -54,27 +87,14 @@ const limiter = rateLimit({
     },
 });
 
-app.use(limiter);
+// Routes - mount all routes under /api with rate limiting
+const apiRouter = express.Router();
+apiRouter.use(limiter);  // Apply rate limiting to all API routes
+apiRouter.use("/games", gamesRoutes);
+apiRouter.use("/auth", authRoutes);
 
-// Health check endpoint with detailed information
-app.get('/api/health', (req, res) => {
-    const healthInfo = {
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        environment: process.env.NODE_ENV || 'development',
-        database: process.env.DATABASE_URL ? 'configured' : 'not configured',
-        auth: process.env.JWT_SECRET ? 'configured' : 'not configured',
-        memory: process.memoryUsage(),
-        uptime: process.uptime()
-    };
-
-    console.log('Health Check:', healthInfo);
-    res.json(healthInfo);
-});
-
-// Routes
-app.use("/api/games", gamesRoutes);
-app.use("/api/auth", authRoutes);
+// Mount the API router
+app.use("/api", apiRouter);
 
 // Error handling middleware with better logging
 app.use((err, req, res, next) => {
@@ -111,6 +131,26 @@ app.use((err, req, res, next) => {
     });
 });
 
+// Function to log registered routes
+const logRoutes = () => {
+    console.log('\nRegistered Routes:');
+    const printRoutes = (stack, prefix = '') => {
+        stack.forEach(mw => {
+            if (mw.route) {
+                const methods = Object.keys(mw.route.methods).join(', ').toUpperCase();
+                console.log(`${methods} ${prefix}${mw.route.path}`);
+            } else if (mw.name === 'router') {
+                const newPrefix = prefix + (mw.regexp.toString().replace('/^\\', '').replace('\\/?(?=\\/|$)/i', ''));
+                printRoutes(mw.handle.stack, newPrefix);
+            }
+        });
+    };
+
+    if (app._router && app._router.stack) {
+        printRoutes(app._router.stack);
+    }
+};
+
 // Initialize cache and start cron jobs
 const initializeServer = async () => {
     try {
@@ -126,10 +166,10 @@ const initializeServer = async () => {
         app.listen(PORT, () => {
             console.log(`Server is running on port ${PORT}`);
             console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-            console.log('CORS configuration:', {
-                mode: 'permissive',
-                origins: 'all'
-            });
+            console.log('CORS configuration:', corsOptions);
+
+            // Log routes after server has started
+            logRoutes();
         });
     } catch (error) {
         console.error("Error initializing server:", {

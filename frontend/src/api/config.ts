@@ -21,8 +21,7 @@ const determineApiUrl = (): string => {
 
     if (!validateApiUrl(apiUrl)) {
         console.error(`Invalid API URL: ${apiUrl}. Please check your environment configuration.`);
-        // In production, fall back to the default URL
-        return process.env.NODE_ENV === 'production' ? defaultUrl : apiUrl;
+        return defaultUrl;
     }
 
     return apiUrl;
@@ -30,29 +29,66 @@ const determineApiUrl = (): string => {
 
 export const API_BASE_URL = determineApiUrl();
 
-// Log API configuration in non-production environments
+// Create axios instance for API endpoints
+const apiClient = axios.create({
+    baseURL: API_BASE_URL,  // Remove /api prefix here since it's included in endpoints
+    timeout: 10000,
+    withCredentials: true,
+    headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+    }
+});
+
+// Log configuration in development
 if (process.env.NODE_ENV !== 'production') {
     console.log('API Configuration:', {
-        environment: process.env.NODE_ENV,
-        apiUrl: API_BASE_URL,
-        usingEnvVar: !!process.env.REACT_APP_API_URL
+        baseURL: apiClient.defaults.baseURL,
+        withCredentials: apiClient.defaults.withCredentials,
+        headers: apiClient.defaults.headers
     });
 }
 
-// API Endpoints
+// Add request interceptor for authentication
+apiClient.interceptors.request.use(
+    (config) => {
+        const token = localStorage.getItem('token');
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
+
+// Add response interceptor for error handling
+apiClient.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response?.status === 401) {
+            localStorage.removeItem('token');
+            window.location.href = '/login';
+        }
+        return Promise.reject(error);
+    }
+);
+
+// API Endpoints - all endpoints include /api prefix
 export const ENDPOINTS = {
-    HEALTH: `${API_BASE_URL}/api/health`,
+    HEALTH: '/health',  // Add /api prefix here
     GAMES: {
-        ALL: `${API_BASE_URL}/api/games`,
-        BY_TEAM: (teamId: string) => `${API_BASE_URL}/api/games/team/${teamId}`,
-        BY_DATE: (date: string) => `${API_BASE_URL}/api/games/date/${date}`,
-        BY_VENUE: (venueId: string) => `${API_BASE_URL}/api/games/venue/${venueId}`,
+        ALL: '/games',
+        BY_TEAM: (teamId: string) => `/games/team/${teamId}`,
+        BY_DATE: (date: string) => `/games/date/${date}`,
+        BY_VENUE: (venueId: string) => `/games/venue/${venueId}`,
     },
     AUTH: {
-        LOGIN: `${API_BASE_URL}/api/auth/login`,
-        REGISTER: `${API_BASE_URL}/api/auth/register`,
-        ME: `${API_BASE_URL}/api/auth/me`,
-        PREFERENCES: `${API_BASE_URL}/api/auth/preferences`,
+        LOGIN: '/api/auth/login',
+        REGISTER: '/api/auth/register',
+        ME: '/api/auth/me',
+        PREFERENCES: '/api/auth/preferences',
     }
 };
 
@@ -62,26 +98,37 @@ interface HealthCheckResponse {
     environment: string;
 }
 
-// Test API connection
+// Test API connection with detailed logging
 export const testApiConnection = async (): Promise<boolean> => {
+    console.log('Health Check Configuration:', {
+        baseURL: apiClient.defaults.baseURL,
+        endpoint: ENDPOINTS.HEALTH
+    });
+
     try {
-        const response = await axios.get<HealthCheckResponse>(ENDPOINTS.HEALTH, {
-            timeout: 5000, // 5 second timeout
-            headers: {
-                'Accept': 'application/json',
-            },
-            validateStatus: (status) => status === 200 // Only consider 200 as success
+        const response = await apiClient.get<HealthCheckResponse>(ENDPOINTS.HEALTH);
+        console.log('Health Check Success:', {
+            status: response.status,
+            data: response.data,
+            config: {
+                url: response.config.url,
+                baseURL: response.config.baseURL,
+                fullUrl: response.request.responseURL
+            }
         });
 
-        console.log('Health Check Response:', response.data);
         return response.data.status === 'ok';
     } catch (error) {
-        if (axios.isAxiosError(error)) {
+        if (axios.isAxiosError(error) && error.config) {
             console.error('API Health Check Failed:', {
                 message: error.message,
                 status: error.response?.status,
                 data: error.response?.data,
-                url: ENDPOINTS.HEALTH
+                config: {
+                    url: error.config.url || '',
+                    baseURL: error.config.baseURL || '',
+                    fullUrl: `${error.config.baseURL || ''}${error.config.url || ''}`
+                }
             });
         } else {
             console.error('API Health Check Failed:', error);
