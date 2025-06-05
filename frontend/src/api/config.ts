@@ -31,7 +31,7 @@ export const API_BASE_URL = determineApiUrl();
 
 // Create axios instance for API endpoints
 const apiClient = axios.create({
-    baseURL: API_BASE_URL,  // Remove /api prefix here since it's included in endpoints
+    baseURL: API_BASE_URL,
     timeout: 10000,
     withCredentials: true,
     headers: {
@@ -77,12 +77,12 @@ apiClient.interceptors.response.use(
 
 // API Endpoints - all endpoints include /api prefix
 export const ENDPOINTS = {
-    HEALTH: '/health',  // Add /api prefix here
+    HEALTH: '/api/health',
     GAMES: {
-        ALL: '/games',
-        BY_TEAM: (teamId: string) => `/games/team/${teamId}`,
-        BY_DATE: (date: string) => `/games/date/${date}`,
-        BY_VENUE: (venueId: string) => `/games/venue/${venueId}`,
+        ALL: '/api/games',
+        BY_TEAM: (teamId: string) => `/api/games/team/${teamId}`,
+        BY_DATE: (date: string) => `/api/games/date/${date}`,
+        BY_VENUE: (venueId: string) => `/api/games/venue/${venueId}`,
     },
     AUTH: {
         LOGIN: '/api/auth/login',
@@ -136,3 +136,5 @@ export const testApiConnection = async (): Promise<boolean> => {
         return false;
     }
 };
+
+export default apiClient;

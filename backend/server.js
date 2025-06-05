@@ -21,13 +21,19 @@ console.log('Server Configuration:', {
 // CORS configuration
 const corsOptions = {
     origin: process.env.NODE_ENV === 'production'
-        ? ['https://gameday-central.vercel.app', 'https://gameday-central-production.up.railway.app']
+        ? [
+            'https://gameday-central.vercel.app',
+            'https://gameday-central-production.up.railway.app',
+            'https://gameday-central-vercel.app'
+        ]
         : ['http://localhost:3000'],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
     exposedHeaders: ['Content-Range', 'X-Content-Range'],
-    maxAge: 86400
+    maxAge: 86400,
+    preflightContinue: false,
+    optionsSuccessStatus: 204
 };
 
 // Enhanced request logging
